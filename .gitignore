@@ -21,3 +21,7 @@ uv.lock
 # Test files
 test_*.py
 demo_*.py
+
+# files
+input.pdf
+output_translated.pdf

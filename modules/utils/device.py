@@ -121,6 +121,7 @@ def get_providers(device: Optional[str] = None) -> list[str]:
     Rules:
     - If device is the string 'cpu' (case-insensitive) -> return ['CPUExecutionProvider']
     - Otherwise return ort.get_available_providers() if non-empty, else fall back to ['CPUExecutionProvider']
+    - Exclude CoreMLExecutionProvider as it has compatibility issues with some models
     """
     try:
         available = ort.get_available_providers()
@@ -130,4 +131,13 @@ def get_providers(device: Optional[str] = None) -> list[str]:
     if device and isinstance(device, str) and device.lower() == 'cpu':
         return ['CPUExecutionProvider']
 
-    return available if available else ['CPUExecutionProvider']
+    # Filter out CoreML as it has compatibility issues with some ONNX models
+    # Prefer CPU over CoreML to avoid runtime errors
+    filtered = [p for p in available if p != 'CoreMLExecutionProvider']
+    
+    # If we filtered out CoreML and have other providers, use those
+    # Otherwise fall back to CPU
+    if filtered:
+        return filtered
+    else:
+        return ['CPUExecutionProvider']
