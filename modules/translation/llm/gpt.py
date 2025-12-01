@@ -32,7 +32,10 @@ class GPTTranslation(BaseLLMTranslation):
         self.model_name = model_name
         credentials = settings.get_credentials(settings.ui.tr('Open AI GPT'))
         self.api_key = credentials.get('api_key', '')
-        self.model = MODEL_MAP.get(self.model_name)
+
+        # Map display name -> actual API model; if không có trong MODEL_MAP
+        # thì dùng luôn model_name (hữu ích cho các model mới như gpt-4o).
+        self.model = MODEL_MAP.get(self.model_name, self.model_name)
     
     def _perform_translation(self, user_prompt: str, system_prompt: str, image: np.ndarray) -> str:
         """

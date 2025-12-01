@@ -74,11 +74,62 @@ class HeadlessSettings:
 
     def get_credentials(self, service: str = ""):
         """
-        Return credentials for a service. For headless mode, returns empty dict
-        since we use free/default engines that don't require credentials.
+        Return credentials for the currently selected translator.
+
+        Logic:
+        - Dựa trên giá trị truyền vào --translator khi chạy CLI
+        - Mỗi translator sẽ đọc API key từ một biến môi trường tương ứng
+        - Nếu không có key trong env thì trả về {} để tránh crash
         """
-        # Return empty dict for all services - headless mode uses free engines
-        # This prevents AttributeError when engines try to call .get() on the result
+        tr = (self._translator or "").lower()
+
+        # Google Translate dùng thư viện free, không cần API key
+        if tr in ("google", "google translate"):
+            return {}
+
+        # OpenAI GPT / gpt-4o / GPT-4.1 / Custom (OpenAI-compatible)
+        if tr in ("gpt-4o", "gpt-4.1", "gpt-4.1-mini", "custom", "openai", "gpt"):
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key, "model": "gpt-4o"}
+
+        # DeepL
+        if tr in ("deepl",):
+            api_key = os.environ.get("DEEPL_API_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key}
+
+        # Yandex
+        if tr in ("yandex",):
+            api_key = os.environ.get("YANDEX_API_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key}
+
+        # Microsoft Translator
+        if tr in ("microsoft", "microsoft translator", "azure"):
+            api_key = os.environ.get("AZURE_TRANSLATOR_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key}
+
+        # Gemini
+        if tr in ("gemini", "gemini-2.5", "gemini-2.0", "gemini-2.5-flash", "gemini-2.0-flash"):
+            api_key = os.environ.get("GEMINI_API_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key}
+
+        # DeepSeek
+        if tr in ("deepseek", "deepseek-v3"):
+            api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+            if not api_key:
+                return {}
+            return {"api_key": api_key}
+
+        # Mặc định: không có credential
         return {}
 
     def get_hd_strategy_settings(self):
