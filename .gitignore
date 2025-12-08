@@ -25,3 +25,7 @@ demo_*.py
 # files
 input.pdf
 output_translated.pdf
+
+._ct_work/
+anime_ace_bb/
+font-hung-lan/

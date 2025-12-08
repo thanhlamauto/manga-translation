@@ -1,4 +1,4 @@
-import os, argparse, shutil
+import os, argparse, shutil, json
 from pathlib import Path
 
 import cv2
@@ -15,7 +15,11 @@ from modules.utils.pipeline_utils import (
     inpaint_map, generate_mask, get_config
 )
 from modules.utils.textblock import sort_blk_list
-from modules.utils.translator_utils import set_upper_case
+from modules.utils.translator_utils import (
+    set_upper_case,
+    get_raw_text,
+    get_raw_translation,
+)
 
 # Translation factory used by GUI
 from modules.translation.factory import TranslationFactory  # <-- GUI uses this :contentReference[oaicite:2]{index=2}
@@ -203,13 +207,25 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
     """
     clean_rgb = cv2.cvtColor(clean_bgr, cv2.COLOR_BGR2RGB)
 
-    # Find a default font for headless rendering
+    # Prefer user-specified font: anime_ace_bb (absolute path provided)
     font_path = None
-    font_folder = Path(__file__).parent / "resources" / "fonts"
-    if font_folder.exists():
-        font_files = list(font_folder.glob("*.ttf")) + list(font_folder.glob("*.otf"))
-        if font_files:
-            font_path = str(font_files[0])
+    preferred_font_root = Path("/Users/nguyenthanhlam/comic-translate/font-hung-lan/hunglan/hlcomic/hlcomic2.ttf")
+    preferred_fonts = []
+    if preferred_font_root.exists():
+        if preferred_font_root.is_file():
+            preferred_fonts = [preferred_font_root]
+        else:
+            preferred_fonts = list(preferred_font_root.glob("*.ttf")) + list(preferred_font_root.glob("*.otf"))
+    if preferred_fonts:
+        font_path = str(preferred_fonts[0])
+
+    # Fallback to bundled fonts if preferred font not found
+    if font_path is None:
+        font_folder = Path(__file__).parent / "resources" / "fonts"
+        if font_folder.exists():
+            font_files = list(font_folder.glob("*.ttf")) + list(font_folder.glob("*.otf"))
+            if font_files:
+                font_path = str(font_files[0])
     
     # Fallback to system font if no custom font found
     if font_path is None:
@@ -253,7 +269,7 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
         print("[WARN] No translations found in text blocks, skipping text rendering")
         return clean_bgr, False
 
-    # Normalize alignment values in blocks to valid PIL values
+    # Normalize alignment and font sizes per block
     for blk in blk_list:
         if not hasattr(blk, 'alignment') or not blk.alignment:
             blk.alignment = "center"  # Default to center
@@ -276,6 +292,20 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
             blk.line_spacing = float(blk.line_spacing)
         except (ValueError, TypeError):
             blk.line_spacing = 1.0
+
+        # Dynamic font sizing based on bounding box height
+        try:
+            _, _, _, height = blk.xywh
+            height = max(height, 1)
+            dyn_max = max(10, int(height * 0.8))
+            dyn_min = max(8, int(height * 0.35))
+            if dyn_max < dyn_min:
+                dyn_max = dyn_min
+            blk.max_font_size = dyn_max
+            blk.min_font_size = dyn_min
+        except Exception:
+            # Fallback to defaults inside draw_text
+            pass
 
     rendered_rgb = None
     # Try draw_text with font path
@@ -350,6 +380,25 @@ def translate_page_image(
         engine.translate(blk_list)
 
     set_upper_case(blk_list, settings_stub.ui.uppercase_checkbox.isChecked())
+
+    # 3b) export OCR & translation text for this page
+    try:
+        text_dir = Path("._ct_work") / "text"
+        text_dir.mkdir(parents=True, exist_ok=True)
+        page_stem = Path(image_path).stem  # e.g. page_0000
+
+        # Raw OCR text (trước khi render)
+        ocr_json = get_raw_text(blk_list)
+        with open(text_dir / f"{page_stem}_ocr.json", "w", encoding="utf-8") as f:
+            f.write(ocr_json)
+
+        # Translated text
+        translated_json = get_raw_translation(blk_list)
+        with open(text_dir / f"{page_stem}_translated.json", "w", encoding="utf-8") as f:
+            f.write(translated_json)
+    except Exception as e:
+        # Không để việc export text làm hỏng pipeline chính
+        print(f"[WARN] Failed to export text for {image_path}: {e}")
 
     # 4) inpaint/remove original text
     device = "cuda" if settings_stub.is_gpu_enabled() else "cpu"
