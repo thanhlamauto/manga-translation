@@ -209,7 +209,7 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
 
     # Prefer user-specified font: anime_ace_bb (absolute path provided)
     font_path = None
-    preferred_font_root = Path("/Users/nguyenthanhlam/comic-translate/font-hung-lan/hunglan/hlcomic/hlcomic2.ttf")
+    preferred_font_root = Path("/Users/nguyenthanhlam/manga-translation/font-hung-lan/hunglan/hlcomic/HLcomic1_normal.ttf")
     preferred_fonts = []
     if preferred_font_root.exists():
         if preferred_font_root.is_file():
@@ -293,19 +293,13 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
         except (ValueError, TypeError):
             blk.line_spacing = 1.0
 
-        # Dynamic font sizing based on bounding box height
-        try:
-            _, _, _, height = blk.xywh
-            height = max(height, 1)
-            dyn_max = max(10, int(height * 0.8))
-            dyn_min = max(8, int(height * 0.35))
-            if dyn_max < dyn_min:
-                dyn_max = dyn_min
-            blk.max_font_size = dyn_max
-            blk.min_font_size = dyn_min
-        except Exception:
-            # Fallback to defaults inside draw_text
-            pass
+        # Force fixed font sizes per block so draw_text doesn't override them
+        blk.max_font_size = 60
+        blk.min_font_size = 60
+
+    # Fixed font sizes
+    init_font_size = 60
+    min_font_size = 60
 
     rendered_rgb = None
     # Try draw_text with font path
@@ -314,7 +308,7 @@ def render_translations(clean_bgr, blk_list, settings_stub, target_lang):
         try:
             print(f"[INFO] Rendering text with font: {font_path}")
             # draw_text signature: (image, blk_list, font_pth, colour, init_font_size, min_font_size, outline)
-            rendered_rgb = fn(clean_rgb, blk_list, font_path, "#000", 40, 10, True)
+            rendered_rgb = fn(clean_rgb, blk_list, font_path, "#000", init_font_size, min_font_size, True)
             print(f"[INFO] Text rendering successful")
         except Exception as e:
             # Debug: print error but don't fail completely
