@@ -11,6 +11,7 @@ from .llm.claude import ClaudeTranslation
 from .llm.gemini import GeminiTranslation
 from .llm.deepseek import DeepseekTranslation
 from .llm.custom import CustomTranslation
+from .contextual_transcript import ContextualTranscriptLLMTranslation
 
 
 class TranslationFactory:
@@ -32,7 +33,9 @@ class TranslationFactory:
         "Claude": ClaudeTranslation,
         "Gemini": GeminiTranslation,
         "Deepseek": DeepseekTranslation,
-        "Custom": CustomTranslation
+        "Custom": CustomTranslation,
+        "Context LLM (VN)": ContextualTranscriptLLMTranslation,
+        "ContextualTranscript": ContextualTranscriptLLMTranslation,
     }
     
     # Default engines for fallback

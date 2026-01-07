@@ -139,6 +139,11 @@ Giải thích tham số:
 - **`--translator`**: key translator:
   - `google` → **Google Translate** (miễn phí, không cần API key).
   - Các giá trị khác (DeepL, GPT, …) cần cấu hình credential trong UI, **headless script hiện mặc định an toàn hơn với `google`**.
+**Ghi chú về mô hình dịch có ngữ cảnh (PDF headless)**:
+
+- Khi chạy `translate_pdf.py`, các block thoại sẽ được gom thành transcript, sau đó đi qua pipeline trong `processing.py` (local context, character profiles, enrich transcript, translate) để dịch sang tiếng Việt (hiện tối ưu cho English → Vietnamese).
+- Để pipeline này hoạt động, bạn cần đặt biến môi trường `OPENAI_API_KEY` hợp lệ (OpenAI API).
+
 - **`--inpainter`**:
   - `lama_manga` → ánh xạ nội bộ sang `LaMa` (model inpaint dành cho manga/anime).
   - Bạn có thể dùng `aot` nếu muốn AOT-GAN (nếu đã được map đúng).
